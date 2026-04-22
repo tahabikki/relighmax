@@ -112,7 +112,7 @@ class lowlight_enhance(object):
         print("[*] Initialize model successfully...")
 
     def gradient(self, input_tensor, direction):
-        kernel_values = [[[0.0, 0.0], [-1.0, 1.0]]
+        kernel_values = [[[0.0, 0.0], [-1.0, 1.0]]]
         self.smooth_kernel_x = tf.reshape(tf.constant(kernel_values, tf.float32), [2, 2, 1, 1])
         self.smooth_kernel_y = tf.transpose(self.smooth_kernel_x, [1, 0, 2, 3])
 
