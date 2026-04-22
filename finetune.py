@@ -23,9 +23,13 @@ tf1.disable_eager_execution()
 parser = argparse.ArgumentParser(description='Fine-tune RetinexNet')
 
 parser.add_argument('--phase', dest='phase', default='train', help='train or test')
+parser.add_argument('--train_stage', dest='train_stage', default='both', choices=['decom', 'relight', 'both'], help='which stage to fine-tune during --phase=train')
+parser.add_argument('--test_stage', dest='test_stage', default='relight', choices=['decom', 'relight', 'both'], help='which stage outputs to save during --phase=test')
 parser.add_argument('--test_image', dest='test_image', default=None, help='specific test image path')
 parser.add_argument('--test_input', dest='test_input', default='./data/test/input', help='test input folder (used when --test_image is not set)')
 parser.add_argument('--test_output', dest='test_output', default='./data/test/target', help='test output folder')
+parser.add_argument('--ckpt_decom', dest='ckpt_decom', default='./checkpoint/Decom', help='Decom checkpoint folder')
+parser.add_argument('--ckpt_relight', dest='ckpt_relight', default='./checkpoint/Relight', help='Relight checkpoint folder')
 parser.add_argument('--epoch', dest='epoch', type=int, default=50, help='number of epochs for fine-tuning')
 parser.add_argument('--batch_size', dest='batch_size', type=int, default=8, help='batch size')
 parser.add_argument('--patch_size', dest='patch_size', type=int, default=96, help='patch size')
@@ -88,32 +92,34 @@ def finetune_train(lowlight_enhance):
     print('=' * 50)
     print('Phase 1/2: Learning decomposition')
     print('=' * 50)
-    lowlight_enhance.train(
-        train_low_data, train_high_data, eval_low_data,
-        batch_size=args.batch_size, patch_size=args.patch_size,
-        epoch=args.epoch, lr=lr, sample_dir=sample_dir,
-        ckpt_dir=os.path.join(ckpt_dir, 'Decom'),
-        eval_every_epoch=args.eval_every_epoch, train_phase='Decom'
-    )
+    if args.train_stage in ('decom', 'both'):
+        lowlight_enhance.train(
+            train_low_data, train_high_data, eval_low_data,
+            batch_size=args.batch_size, patch_size=args.patch_size,
+            epoch=args.epoch, lr=lr, sample_dir=sample_dir,
+            ckpt_dir=args.ckpt_decom,
+            eval_every_epoch=args.eval_every_epoch, train_phase='Decom'
+        )
     
     print('=' * 50)
     print('Phase 2/2: Learning relighting')
     print('=' * 50)
-    lowlight_enhance.train(
-        train_low_data, train_high_data, eval_low_data,
-        batch_size=args.batch_size, patch_size=args.patch_size,
-        epoch=args.epoch, lr=lr, sample_dir=sample_dir,
-        ckpt_dir=os.path.join(ckpt_dir, 'Relight'),
-        eval_every_epoch=args.eval_every_epoch, train_phase='Relight'
-    )
+    if args.train_stage in ('relight', 'both'):
+        lowlight_enhance.train(
+            train_low_data, train_high_data, eval_low_data,
+            batch_size=args.batch_size, patch_size=args.patch_size,
+            epoch=args.epoch, lr=lr, sample_dir=sample_dir,
+            ckpt_dir=args.ckpt_relight,
+            eval_every_epoch=args.eval_every_epoch, train_phase='Relight'
+        )
     
     print('[*] Fine-tuning complete!')
     print('=' * 50)
     print('TRAINING COMPLETE!')
     print('=' * 50)
-    print('Checkpoints saved:')
-    print('  ./checkpoint/Decom/RetinexNet_finetuned')
-    print('  ./checkpoint/Relight/RetinexNet_finetuned')
+    print('Checkpoints saved (depending on --train_stage):')
+    print('  Decom:', args.ckpt_decom)
+    print('  Relight:', args.ckpt_relight)
     print('=' * 50)
 
 def finetune_test(lowlight_enhance):
@@ -145,33 +151,66 @@ def finetune_test(lowlight_enhance):
     tf1.global_variables_initializer().run()
     
     print('[*] Loading fine-tuned model...')
-    load_model_status_Decom, _ = lowlight_enhance.load(lowlight_enhance.saver_Decom, './checkpoint/Decom')
-    load_model_status_Relight, _ = lowlight_enhance.load(lowlight_enhance.saver_Relight, './checkpoint/Relight')
-    
-    if load_model_status_Decom and load_model_status_Relight:
+    need_decom = args.test_stage in ('decom', 'relight', 'both')
+    need_relight = args.test_stage in ('relight', 'both')
+
+    load_model_status_Decom = True
+    load_model_status_Relight = True
+    if need_decom:
+        load_model_status_Decom, _ = lowlight_enhance.load(lowlight_enhance.saver_Decom, args.ckpt_decom)
+    if need_relight:
+        load_model_status_Relight, _ = lowlight_enhance.load(lowlight_enhance.saver_Relight, args.ckpt_relight)
+
+    if (not need_decom or load_model_status_Decom) and (not need_relight or load_model_status_Relight):
         print('[*] Fine-tuned model loaded!')
-        
-        for idx in range(len(test_data)):
-            [_, name] = os.path.split(test_names[idx])
-            root, ext = os.path.splitext(name)
-            if not ext:
-                continue
-            suffix = ext.lstrip('.')
-            name = root
-            
-            input_test = np.expand_dims(test_data[idx], axis=0)
+    else:
+        missing = []
+        if need_decom and not load_model_status_Decom:
+            missing.append(f"Decom ({args.ckpt_decom})")
+        if need_relight and not load_model_status_Relight:
+            missing.append(f"Relight ({args.ckpt_relight})")
+        print('[!] Failed to load required checkpoints:', ', '.join(missing))
+        return
+
+    for idx in range(len(test_data)):
+        [_, name] = os.path.split(test_names[idx])
+        root, ext = os.path.splitext(name)
+        if not ext:
+            continue
+        suffix = ext.lstrip('.')
+        name = root
+
+        input_test = np.expand_dims(test_data[idx], axis=0)
+
+        if args.test_stage == 'decom':
+            [R_low, I_low] = lowlight_enhance.sess.run(
+                [lowlight_enhance.output_R_low, lowlight_enhance.output_I_low],
+                feed_dict={lowlight_enhance.input_low: input_test}
+            )
+            save_images(os.path.join(save_dir, name + "_R_low." + suffix), R_low)
+            save_images(os.path.join(save_dir, name + "_I_low." + suffix), I_low)
+            print('[*] Saved:', name + "_R_low." + suffix, "and", name + "_I_low." + suffix)
+        elif args.test_stage == 'relight':
+            [I_delta, S] = lowlight_enhance.sess.run(
+                [lowlight_enhance.output_I_delta, lowlight_enhance.output_S],
+                feed_dict={lowlight_enhance.input_low: input_test}
+            )
+            save_images(os.path.join(save_dir, name + "_I_delta." + suffix), I_delta)
+            save_images(os.path.join(save_dir, name + "_S." + suffix), S)
+            print('[*] Saved:', name + "_I_delta." + suffix, "and", name + "_S." + suffix)
+        else:
             [R_low, I_low, I_delta, S] = lowlight_enhance.sess.run(
-                [lowlight_enhance.output_R_low, lowlight_enhance.output_I_low, 
+                [lowlight_enhance.output_R_low, lowlight_enhance.output_I_low,
                  lowlight_enhance.output_I_delta, lowlight_enhance.output_S],
                 feed_dict={lowlight_enhance.input_low: input_test}
             )
-            
+            save_images(os.path.join(save_dir, name + "_R_low." + suffix), R_low)
+            save_images(os.path.join(save_dir, name + "_I_low." + suffix), I_low)
+            save_images(os.path.join(save_dir, name + "_I_delta." + suffix), I_delta)
             save_images(os.path.join(save_dir, name + "_S." + suffix), S)
-            print('[*] Saved:', name + "_S." + suffix)
-        
-        print('[*] Results saved in', save_dir)
-    else:
-        print('[!] Failed to load fine-tuned model')
+            print('[*] Saved:', name + "_R_low." + suffix, name + "_I_low." + suffix, name + "_I_delta." + suffix, name + "_S." + suffix)
+
+    print('[*] Results saved in', save_dir)
 
 def main(_):
     gpu_options = tf1.GPUOptions(per_process_gpu_memory_fraction=0.5)

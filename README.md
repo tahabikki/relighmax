@@ -13,6 +13,48 @@ Deep Retinex Decomposition for Low-Light Enhancement. In BMVC'18 (Oral Presentat
 2. Tensorflow >= 1.5.0
 3. numpy, PIL
 
+### Fine-tuning & Testing (finetune.py) ###
+This repo also includes `finetune.py` for fine-tuning and testing using the dataset folders under `./data/`.
+
+**Fine-tune (train):**
+```shell
+# Train BOTH stages (Decom + Relight) and save checkpoints to ./checkpoint/Decom and ./checkpoint/Relight
+python finetune.py --phase=train --train_stage=both
+
+# Train only Decom
+python finetune.py --phase=train --train_stage=decom
+
+# Train only Relight (requires an existing Decom checkpoint for best results)
+python finetune.py --phase=train --train_stage=relight
+```
+
+**Test (inference):**
+```shell
+# Test all images: input ./data/test/input -> output ./data/test/target (default)
+python finetune.py --phase=test
+
+# Test one image + choose output folder
+python finetune.py --phase=test --test_image=./data/test/input/example.jpg --test_output=./data/test/target
+
+# Test a custom folder -> custom output folder
+python finetune.py --phase=test --test_input=./data/test/input --test_output=./data/test/target
+
+# Save Decom outputs only (R_low, I_low)
+python finetune.py --phase=test --test_stage=decom
+
+# Save Relight outputs (I_delta, S) [default]
+python finetune.py --phase=test --test_stage=relight
+
+# Save BOTH Decom + Relight outputs (R_low, I_low, I_delta, S)
+python finetune.py --phase=test --test_stage=both
+```
+
+**Custom checkpoint folders:**
+```shell
+python finetune.py --phase=train --train_stage=both --ckpt_decom=./checkpoint/Decom --ckpt_relight=./checkpoint/Relight
+python finetune.py --phase=test --ckpt_decom=./checkpoint/Decom --ckpt_relight=./checkpoint/Relight
+```
+
 ### Testing  Usage ###
 To quickly test your own images with our model, you can just run through
 ```shell
