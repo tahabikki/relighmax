@@ -2,7 +2,6 @@ from __future__ import print_function
 
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -12,11 +11,12 @@ import argparse
 from glob import glob
 from PIL import Image
 import tensorflow as tf
+import tensorflow.compat.v1 as tf1
 import numpy as np
 from model import lowlight_enhance
 from utils import *
 
-tf.compat.v1.disable_eager_execution()
+tf1.disable_eager_execution()
 
 parser = argparse.ArgumentParser(description='Fine-tune RetinexNet')
 
@@ -99,7 +99,7 @@ def finetune_test(lowlight_enhance):
         test_data.append(test_im)
         test_names.append(test_data_name[idx])
     
-    tf.compat.v1.global_variables_initializer().run()
+    tf1.global_variables_initializer().run()
     
     print('[*] Loading fine-tuned model...')
     load_model_status_Decom, _ = lowlight_enhance.load(lowlight_enhance.saver_Decom, './checkpoint/Decom')
@@ -128,8 +128,8 @@ def finetune_test(lowlight_enhance):
         print('[!] Failed to load fine-tuned model')
 
 def main(_):
-    gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=0.5)
-    with tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(gpu_options=gpu_options)) as sess:
+    gpu_options = tf1.GPUOptions(per_process_gpu_memory_fraction=0.5)
+    with tf1.Session(config=tf1.ConfigProto(gpu_options=gpu_options)) as sess:
         model = lowlight_enhance(sess)
         
         if args.phase == 'train':
@@ -140,4 +140,4 @@ def main(_):
             print('[!] Unknown phase')
 
 if __name__ == '__main__':
-    tf.compat.v1.app.run()
+    tf1.app.run()

@@ -6,23 +6,23 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import warnings
 warnings.filterwarnings('ignore')
 
-import os
 import time
 import random
 from PIL import Image
 import tensorflow as tf
+import tensorflow.compat.v1 as tf1
 import numpy as np
 from utils import *
 
-tf.compat.v1.disable_eager_execution()
+tf1.disable_eager_execution()
 
 def concat(layers):
-    return tf.concat(layers, axis=3)
+    return tf1.concat(layers, axis=3)
 
 def DecomNet(input_im, layer_num, channel=64, kernel_size=3):
     input_max = tf.reduce_max(input_im, axis=3, keepdims=True)
     input_im = concat([input_max, input_im])
-    with tf.variable_scope('DecomNet', reuse=tf.AUTO_REUSE):
+    with tf1.variable_scope('DecomNet', reuse=tf1.AUTO_REUSE):
         conv = tf.layers.conv2d(input_im, channel, kernel_size * 3, padding='same', activation=None, name="shallow_feature_extraction")
         for idx in range(layer_num):
             conv = tf.layers.conv2d(conv, channel, kernel_size, padding='same', activation=tf.nn.relu, name='activated_layer_%d' % idx)
@@ -35,7 +35,7 @@ def DecomNet(input_im, layer_num, channel=64, kernel_size=3):
 
 def RelightNet(input_L, input_R, channel=64, kernel_size=3):
     input_im = concat([input_R, input_L])
-    with tf.variable_scope('RelightNet'):
+    with tf1.variable_scope('RelightNet'):
         conv0 = tf.layers.conv2d(input_im, channel, kernel_size, padding='same', activation=None)
         conv1 = tf.layers.conv2d(conv0, channel, kernel_size, strides=2, padding='same', activation=tf.nn.relu)
         conv2 = tf.layers.conv2d(conv1, channel, kernel_size, strides=2, padding='same', activation=tf.nn.relu)
@@ -60,8 +60,8 @@ class lowlight_enhance(object):
         self.sess = sess
         self.DecomNet_layer_num = 5
 
-        self.input_low = tf.compat.v1.placeholder(tf.float32, [None, None, None, 3], name='input_low')
-        self.input_high = tf.compat.v1.placeholder(tf.float32, [None, None, None, 3], name='input_high')
+        self.input_low = tf1.placeholder(tf.float32, [None, None, None, 3], name='input_low')
+        self.input_high = tf1.placeholder(tf.float32, [None, None, None, 3], name='input_high')
 
         [R_low, I_low] = DecomNet(self.input_low, layer_num=self.DecomNet_layer_num)
         [R_high, I_high] = DecomNet(self.input_high, layer_num=self.DecomNet_layer_num)
@@ -91,8 +91,8 @@ class lowlight_enhance(object):
         self.loss_Decom = self.recon_loss_low + self.recon_loss_high + 0.001 * self.recon_loss_mutal_low + 0.001 * self.recon_loss_mutal_high + 0.1 * self.Ismooth_loss_low + 0.1 * self.Ismooth_loss_high + 0.01 * self.equal_R_loss
         self.loss_Relight = self.relight_loss + 3 * self.Ismooth_loss_delta
 
-        self.lr = tf.compat.v1.placeholder(tf.float32, name='learning_rate')
-        optimizer = tf.compat.v1.train.AdamOptimizer(self.lr, name='AdamOptimizer')
+        self.lr = tf1.placeholder(tf.float32, name='learning_rate')
+        optimizer = tf1.train.AdamOptimizer(self.lr, name='AdamOptimizer')
 
         self.var_Decom = [var for var in tf.trainable_variables() if 'DecomNet' in var.name]
         self.var_Relight = [var for var in tf.trainable_variables() if 'RelightNet' in var.name]
@@ -100,10 +100,10 @@ class lowlight_enhance(object):
         self.train_op_Decom = optimizer.minimize(self.loss_Decom, var_list = self.var_Decom)
         self.train_op_Relight = optimizer.minimize(self.loss_Relight, var_list = self.var_Relight)
 
-        self.sess.run(tf.compat.v1.global_variables_initializer())
+        self.sess.run(tf1.global_variables_initializer())
 
-        self.saver_Decom = tf.compat.v1.train.Saver(var_list = self.var_Decom)
-        self.saver_Relight = tf.compat.v1.train.Saver(var_list = self.var_Relight)
+        self.saver_Decom = tf1.train.Saver(var_list = self.var_Decom)
+        self.saver_Relight = tf1.train.Saver(var_list = self.var_Relight)
 
         print("[*] Initialize model successfully...")
 
@@ -226,7 +226,7 @@ class lowlight_enhance(object):
             return False, 0
 
     def test(self, test_low_data, test_high_data, test_low_data_names, save_dir, decom_flag):
-        tf.compat.v1.global_variables_initializer().run()
+        self.sess.run(tf1.global_variables_initializer())
 
         print("[*] Reading checkpoint...")
         load_model_status_Decom, _ = self.load(self.saver_Decom, './model/Decom')

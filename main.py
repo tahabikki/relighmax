@@ -2,7 +2,6 @@ from __future__ import print_function
 
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -13,11 +12,12 @@ from glob import glob
 import numpy as np
 from PIL import Image
 import tensorflow as tf
+import tensorflow.compat.v1 as tf1
 
 from model import lowlight_enhance
 from utils import *
 
-tf.compat.v1.disable_eager_execution()
+tf1.disable_eager_execution()
 
 parser = argparse.ArgumentParser(description='')
 
@@ -101,8 +101,8 @@ def main(_):
     if args.use_gpu:
         print("[*] GPU\n")
         os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_idx
-        gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=args.gpu_mem)
-        with tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(gpu_options=gpu_options)) as sess:
+        gpu_options = tf1.GPUOptions(per_process_gpu_memory_fraction=args.gpu_mem)
+        with tf1.Session(config=tf1.ConfigProto(gpu_options=gpu_options)) as sess:
             model = lowlight_enhance(sess)
             if args.phase == 'train':
                 lowlight_train(model)
@@ -113,7 +113,7 @@ def main(_):
                 exit(0)
     else:
         print("[*] CPU\n")
-        with tf.compat.v1.Session() as sess:
+        with tf1.Session() as sess:
             model = lowlight_enhance(sess)
             if args.phase == 'train':
                 lowlight_train(model)
@@ -124,4 +124,4 @@ def main(_):
                 exit(0)
 
 if __name__ == '__main__':
-    tf.compat.v1.app.run()
+    tf1.app.run()
