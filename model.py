@@ -18,6 +18,7 @@ tf1.disable_eager_execution()
 
 keras = tf.keras
 layers = keras.layers
+nn = tf.nn
 
 def concat(layers_list):
     return tf1.concat(layers_list, axis=3)
@@ -125,7 +126,7 @@ class lowlight_enhance(object):
 
     def smooth(self, input_I, input_R):
         input_R = tf.image.rgb_to_grayscale(input_R)
-        return tf.reduce_mean(self.gradient(input_I, "x") * tf.exp(-10 * self.ave_gradient(input_R, "x")) + self.gradient(input_I, "y") * tf.exp(-10 * self.ave_gradient(input_R, "y")))
+        return tf.reduce_mean(self.gradient(input_I, "x") * tf.exp(-10 * self.ave_gradient(input_R, "x")) + self.gradient(input_I, "y") * tf.exp(-10 * self.ave_gradient(input_R, "y"))
 
     def evaluate(self, epoch_num, eval_low_data, sample_dir, train_phase):
         print("[*] Evaluating for phase %s / epoch %d..." % (train_phase, epoch_num))
