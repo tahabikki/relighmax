@@ -98,8 +98,8 @@ class lowlight_enhance(object):
         self.lr = tf1.placeholder(tf.float32, name='learning_rate')
         optimizer = tf1.train.AdamOptimizer(self.lr, name='AdamOptimizer')
 
-        self.var_Decom = [var for var in tf.trainable_variables() if 'DecomNet' in var.name]
-        self.var_Relight = [var for var in tf.trainable_variables() if 'RelightNet' in var.name]
+        self.var_Decom = [var for var in tf1.trainable_variables() if 'DecomNet' in var.name]
+        self.var_Relight = [var for var in tf1.trainable_variables() if 'RelightNet' in var.name]
 
         self.train_op_Decom = optimizer.minimize(self.loss_Decom, var_list = self.var_Decom)
         self.train_op_Relight = optimizer.minimize(self.loss_Relight, var_list = self.var_Relight)
@@ -112,7 +112,8 @@ class lowlight_enhance(object):
         print("[*] Initialize model successfully...")
 
     def gradient(self, input_tensor, direction):
-        self.smooth_kernel_x = tf.reshape(tf.constant([[[0, 0], [-1, 1]]], tf.float32), [2, 2, 1, 1])
+        kernel_values = [[[0.0, 0.0], [-1.0, 1.0]]
+        self.smooth_kernel_x = tf.reshape(tf.constant(kernel_values, tf.float32), [2, 2, 1, 1])
         self.smooth_kernel_y = tf.transpose(self.smooth_kernel_x, [1, 0, 2, 3])
 
         if direction == "x":
@@ -220,9 +221,9 @@ class lowlight_enhance(object):
                    global_step=iter_num)
 
     def load(self, saver, ckpt_dir):
-        ckpt = tf.train.get_checkpoint_state(ckpt_dir)
+        ckpt = tf1.train.get_checkpoint_state(ckpt_dir)
         if ckpt and ckpt.model_checkpoint_path:
-            full_path = tf.train.latest_checkpoint(ckpt_dir)
+            full_path = tf1.train.latest_checkpoint(ckpt_dir)
             try:
                 global_step = int(full_path.split('/')[-1].split('-')[-1])
             except ValueError:
