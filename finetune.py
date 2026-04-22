@@ -23,6 +23,7 @@ tf1.disable_eager_execution()
 parser = argparse.ArgumentParser(description='Fine-tune RetinexNet')
 
 parser.add_argument('--phase', dest='phase', default='train', help='train or test')
+parser.add_argument('--test_image', dest='test_image', default=None, help='specific test image path')
 parser.add_argument('--epoch', dest='epoch', type=int, default=50, help='number of epochs for fine-tuning')
 parser.add_argument('--batch_size', dest='batch_size', type=int, default=8, help='batch size')
 parser.add_argument('--patch_size', dest='patch_size', type=int, default=96, help='patch size')
@@ -117,14 +118,20 @@ def finetune_test(lowlight_enhance):
     save_dir = './test_results'
     os.makedirs(save_dir, exist_ok=True)
     
-    test_data_name = glob('./data/test/input/*.*')
-    test_data = []
-    test_names = []
-    
-    for idx in range(len(test_data_name)):
-        test_im = load_images(test_data_name[idx])
+    if args.test_image:
+        test_data = []
+        test_names = []
+        test_im = load_images(args.test_image)
         test_data.append(test_im)
-        test_names.append(test_data_name[idx])
+        test_names.append(args.test_image)
+    else:
+        test_data_name = glob('./data/test/input/*.*')
+        test_data = []
+        test_names = []
+        for idx in range(len(test_data_name)):
+            test_im = load_images(test_data_name[idx])
+            test_data.append(test_im)
+            test_names.append(test_data_name[idx])
     
     tf1.global_variables_initializer().run()
     
