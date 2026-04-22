@@ -52,11 +52,17 @@ def finetune_train(lowlight_enhance):
     
     print('[*] Training pairs:', len(train_low_data_names))
     
+    valid_pairs = []
     for idx in range(len(train_low_data_names)):
         low_im = load_images(train_low_data_names[idx])
-        train_low_data.append(low_im)
         high_im = load_images(train_high_data_names[idx])
-        train_high_data.append(high_im)
+        if low_im.shape[0] >= args.patch_size and low_im.shape[1] >= args.patch_size:
+            if high_im.shape[0] >= args.patch_size and high_im.shape[1] >= args.patch_size:
+                valid_pairs.append((low_im, high_im))
+    
+    train_low_data = [p[0] for p in valid_pairs]
+    train_high_data = [p[1] for p in valid_pairs]
+    print('[*] Valid pairs after filtering small images:', len(train_low_data))
     
     eval_low_data_name = glob('./data/eval/input/*.*')
     eval_low_data = []
