@@ -45,12 +45,18 @@ def random_augmentation(image):
 
 def shadow_direction_augmentation(image):
     h, w = image.shape[:2]
+    c = image.shape[2] if len(image.shape) > 2 else 1
+    
     if random.random() < 0.4:
         shadow_type = random.choice(['hard', 'soft', 'directional', 'partial'])
         if shadow_type == 'hard':
             darkness = random.uniform(0.3, 0.7)
-            mask = np.linspace(np.ones(w), darkness * np.ones(w), h)
-            mask = np.tile(mask[:, :, np.newaxis], (1, 1, 3))
+            mask = np.linspace(1.0, darkness, h)
+            mask = np.outer(mask, np.ones(w))
+            if c == 3:
+                mask = np.stack([mask] * 3, axis=2)
+            else:
+                mask = mask[:, :, np.newaxis]
             image = np.clip(image * mask, 0, 1)
         elif shadow_type == 'soft':
             y_pos = random.randint(0, h)
@@ -60,35 +66,37 @@ def shadow_direction_augmentation(image):
             max_dist = np.sqrt(h**2 + w**2)
             darkness = random.uniform(0.4, 0.8)
             mask = np.clip(dist / max_dist * darkness + (1 - darkness), 0, 1)
-            mask = np.tile(mask[:, :, np.newaxis], (1, 1, 3))
+            if c == 3:
+                mask = np.stack([mask] * 3, axis=2)
+            else:
+                mask = mask[:, :, np.newaxis]
             image = np.clip(image * mask, 0, 1)
         elif shadow_type == 'directional':
             angle = random.uniform(0, np.pi)
-            x_shift = (np.arange(h)[:, np.newaxis] * np.cos(angle)).astype(float)
-            y_shift = (np.arange(w)[np.newaxis, :] * np.sin(angle)).astype(float)
-            x_grad = x_shift / h * random.uniform(0.3, 0.7)
-            y_grad = y_shift / w * random.uniform(0.3, 0.7)
+            x_grad = np.cos(angle) * np.linspace(0.3, 0.7, h)[:, np.newaxis]
+            y_grad = np.sin(angle) * np.linspace(0.3, 0.7, w)[np.newaxis, :]
             mask = 1 - (x_grad + y_grad)
-            mask = np.clip(np.tile(mask[:, :, np.newaxis], (1, 1, 3)), 0.1, 1)
-            image = np.clip(image * mask, 0, 1)
-        else:
-            center_x = random.randint(w // 4, 3 * w // 4)
-            center_y = random.randint(h // 4, 3 * h // 4)
-            radius = random.randint(min(h, w) // 4, min(h, w) // 2)
-            yy, xx = np.ogrid[:h, :w]
-            dist = np.sqrt((yy - center_y)**2 + (xx - center_x)**2)
-            mask = np.ones((h, w, 3))
-            mask[dist < radius] = random.uniform(0.3, 0.6)
+            if c == 3:
+                mask = np.stack([mask] * 3, axis=2)
+            else:
+                mask = mask[:, :, np.newaxis]
+            mask = np.clip(mask, 0.1, 1)
             image = np.clip(image * mask, 0, 1)
     if random.random() < 0.3:
         light_left = random.uniform(0.7, 1.0)
         light_right = random.uniform(0.7, 1.0)
-        gradient = np.tile(np.linspace(light_left, light_right, w)[np.newaxis, :, np.newaxis], (h, 1, 3))
+        gradient = np.linspace(light_left, light_right, w)
+        gradient = gradient[np.newaxis, :] * np.ones((h, 1))
+        if c == 3:
+            gradient = np.stack([gradient] * 3, axis=2)
         image = np.clip(image * gradient, 0, 1)
     if random.random() < 0.3:
         light_top = random.uniform(0.7, 1.0)
         light_bottom = random.uniform(0.7, 1.0)
-        gradient = np.tile(np.linspace(light_top, light_bottom, h)[:, :, np.newaxis], (1, w, 3))
+        gradient = np.linspace(light_top, light_bottom, h)
+        gradient = gradient[:, np.newaxis] * np.ones((1, w))
+        if c == 3:
+            gradient = np.stack([gradient] * 3, axis=2)
         image = np.clip(image * gradient, 0, 1)
     return image
 
@@ -98,7 +106,10 @@ def load_images(file_path):
         im = im.convert('RGB')
     elif im.mode == 'L':
         im = im.convert('RGB')
-    return np.array(im, dtype="float32") / 255.0
+    arr = np.array(im, dtype="float32") / 255.0
+    if len(arr.shape) == 2:
+        arr = np.stack([arr] * 3, axis=2)
+    return arr
 
 def save_images(filepath, result_1, result_2=None):
     result_1 = np.squeeze(result_1)
