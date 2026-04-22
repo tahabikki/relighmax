@@ -160,10 +160,8 @@ class lowlight_enhance(object):
             saver = self.saver_Relight
 
         load_model_status, global_step = self.load(saver, ckpt_dir)
-        if not load_model_status and 'checkpoint/' in ckpt_dir:
-            alt_ckpt_dir = ckpt_dir.replace('checkpoint/', 'model/')
-            load_model_status, global_step = self.load(saver, alt_ckpt_dir)
-        if load_model_status:
+        if not load_model_status:
+            print("[*] Training from scratch (no pretrained)")
             iter_num = global_step
             start_epoch = global_step // numBatch
             start_step = global_step % numBatch
