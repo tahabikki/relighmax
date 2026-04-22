@@ -1,0 +1,6 @@
+# RetinexNet - Requirements for Kaggle
+# Install: pip install -r requirements.txt
+
+tensorflow>=1.5.0,<2.0.0
+numpy>=1.16.0
+Pillow>=5.0.0
