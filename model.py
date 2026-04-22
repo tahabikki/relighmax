@@ -44,15 +44,15 @@ def RelightNet(input_L, input_R, channel=64, kernel_size=3):
         conv2 = layers.Conv2D(channel, kernel_size, strides=2, padding='same', activation=tf.nn.relu)(conv1)
         conv3 = layers.Conv2D(channel, kernel_size, strides=2, padding='same', activation=tf.nn.relu)(conv2)
         
-        up1 = tf.image.resize_nearest_neighbor(conv3, (tf.shape(conv2)[1], tf.shape(conv2)[2]))
+        up1 = tf1.image.resize_nearest_neighbor(conv3, (tf.shape(conv2)[1], tf.shape(conv2)[2]))
         deconv1 = layers.Conv2D(channel, kernel_size, padding='same', activation=tf.nn.relu)(up1) + conv2
-        up2 = tf.image.resize_nearest_neighbor(deconv1, (tf.shape(conv1)[1], tf.shape(conv1)[2]))
+        up2 = tf1.image.resize_nearest_neighbor(deconv1, (tf.shape(conv1)[1], tf.shape(conv1)[2]))
         deconv2 = layers.Conv2D(channel, kernel_size, padding='same', activation=tf.nn.relu)(up2) + conv1
-        up3 = tf.image.resize_nearest_neighbor(deconv2, (tf.shape(conv0)[1], tf.shape(conv0)[2]))
+        up3 = tf1.image.resize_nearest_neighbor(deconv2, (tf.shape(conv0)[1], tf.shape(conv0)[2]))
         deconv3 = layers.Conv2D(channel, kernel_size, padding='same', activation=tf.nn.relu)(up3) + conv0
         
-        deconv1_resize = tf.image.resize_nearest_neighbor(deconv1, (tf.shape(deconv3)[1], tf.shape(deconv3)[2]))
-        deconv2_resize = tf.image.resize_nearest_neighbor(deconv2, (tf.shape(deconv3)[1], tf.shape(deconv3)[2]))
+        deconv1_resize = tf1.image.resize_nearest_neighbor(deconv1, (tf.shape(deconv3)[1], tf.shape(deconv3)[2]))
+        deconv2_resize = tf1.image.resize_nearest_neighbor(deconv2, (tf.shape(deconv3)[1], tf.shape(deconv3)[2]))
         feature_gather = concat([deconv1_resize, deconv2_resize, deconv3])
         feature_fusion = layers.Conv2D(channel, 1, padding='same', activation=None)(feature_gather)
         output = layers.Conv2D(1, 3, padding='same', activation=None)(feature_fusion)
