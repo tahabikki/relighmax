@@ -15,18 +15,16 @@ def data_augmentation(image, mode):
     elif mode == 2:
         return np.rot90(image)
     elif mode == 3:
-        image = np.rot90(image)
-        return np.flipud(image)
+        return np.flipud(np.rot90(image))
     elif mode == 4:
         return np.rot90(image, k=2)
     elif mode == 5:
-        image = np.rot90(image, k=2)
-        return np.flipud(image)
+        return np.flipud(np.rot90(image, k=2))
     elif mode == 6:
         return np.rot90(image, k=3)
     elif mode == 7:
-        image = np.rot90(image, k=3)
-        return np.flipud(image)
+        return np.flipud(np.rot90(image, k=3))
+    return image
 
 def random_augmentation(image):
     if random.random() < 0.5:
@@ -37,30 +35,23 @@ def random_augmentation(image):
             contrast_factor = random.uniform(0.7, 1.3)
             mean = np.mean(image, axis=(0, 1), keepdims=True)
             image = np.clip((image - mean) * contrast_factor + mean, 0, 1)
-    
     if random.random() < 0.3:
         hue_shift = random.uniform(-0.1, 0.1)
         image = np.clip(image + hue_shift, 0, 1)
-    
     if random.random() < 0.3:
         gamma = random.uniform(0.7, 1.3)
-        image = np.power(np.clip(image, 1e-8, 1), gamma)
-        image = np.clip(image, 0, 1)
-    
+        image = np.clip(np.power(image + 1e-8, gamma), 0, 1)
     return image
 
 def shadow_direction_augmentation(image):
     h, w = image.shape[:2]
-    
     if random.random() < 0.4:
         shadow_type = random.choice(['hard', 'soft', 'directional', 'partial'])
-        
         if shadow_type == 'hard':
-            y_pos = random.randint(0, h)
             darkness = random.uniform(0.3, 0.7)
             mask = np.linspace(np.ones(w), darkness * np.ones(w), h)
             mask = np.tile(mask[:, :, np.newaxis], (1, 1, 3))
-            
+            image = np.clip(image * mask, 0, 1)
         elif shadow_type == 'soft':
             y_pos = random.randint(0, h)
             x_pos = random.randint(0, w)
@@ -70,16 +61,16 @@ def shadow_direction_augmentation(image):
             darkness = random.uniform(0.4, 0.8)
             mask = np.clip(dist / max_dist * darkness + (1 - darkness), 0, 1)
             mask = np.tile(mask[:, :, np.newaxis], (1, 1, 3))
-            
+            image = np.clip(image * mask, 0, 1)
         elif shadow_type == 'directional':
             angle = random.uniform(0, np.pi)
             x_shift = (np.arange(h)[:, np.newaxis] * np.cos(angle)).astype(float)
             y_shift = (np.arange(w)[np.newaxis, :] * np.sin(angle)).astype(float)
-            x_grad = (x_shift / h * random.uniform(0.3, 0.7))
-            y_grad = (y_shift / w * random.uniform(0.3, 0.7))
+            x_grad = x_shift / h * random.uniform(0.3, 0.7)
+            y_grad = y_shift / w * random.uniform(0.3, 0.7)
             mask = 1 - (x_grad + y_grad)
             mask = np.clip(np.tile(mask[:, :, np.newaxis], (1, 1, 3)), 0.1, 1)
-            
+            image = np.clip(image * mask, 0, 1)
         else:
             center_x = random.randint(w // 4, 3 * w // 4)
             center_y = random.randint(h // 4, 3 * h // 4)
@@ -87,43 +78,30 @@ def shadow_direction_augmentation(image):
             yy, xx = np.ogrid[:h, :w]
             dist = np.sqrt((yy - center_y)**2 + (xx - center_x)**2)
             mask = np.ones((h, w, 3))
-            dark_mask = dist < radius
-            darkness = random.uniform(0.3, 0.6)
-            mask[dark_mask] = darkness
-        
-        if 'mask' in dir():
-            if len(mask.shape) == 2:
-                mask = np.tile(mask[:, :, np.newaxis], (1, 1, 3))
+            mask[dist < radius] = random.uniform(0.3, 0.6)
             image = np.clip(image * mask, 0, 1)
-    
     if random.random() < 0.3:
-        light_from_left = random.uniform(0.7, 1.0)
-        light_from_right = random.uniform(0.7, 1.0)
-        gradient_x = np.linspace(light_from_left, light_from_right, w)
-        gradient = np.tile(gradient_x[np.newaxis, :, np.newaxis], (h, 1, 3))
+        light_left = random.uniform(0.7, 1.0)
+        light_right = random.uniform(0.7, 1.0)
+        gradient = np.tile(np.linspace(light_left, light_right, w)[np.newaxis, :, np.newaxis], (h, 1, 3))
         image = np.clip(image * gradient, 0, 1)
-    
     if random.random() < 0.3:
-        light_from_top = random.uniform(0.7, 1.0)
-        light_from_bottom = random.uniform(0.7, 1.0)
-        gradient_y = np.linspace(light_from_top, light_from_bottom, h)
-        gradient = np.tile(gradient_y[:, :, np.newaxis], (1, w, 3))
+        light_top = random.uniform(0.7, 1.0)
+        light_bottom = random.uniform(0.7, 1.0)
+        gradient = np.tile(np.linspace(light_top, light_bottom, h)[:, :, np.newaxis], (1, w, 3))
         image = np.clip(image * gradient, 0, 1)
-    
     return image
 
-def load_images(file):
-    im = Image.open(file)
+def load_images(file_path):
+    im = Image.open(file_path)
     return np.array(im, dtype="float32") / 255.0
 
-def save_images(filepath, result_1, result_2 = None):
+def save_images(filepath, result_1, result_2=None):
     result_1 = np.squeeze(result_1)
     result_2 = np.squeeze(result_2)
-
-    if not result_2.any():
+    if result_2 is None or not result_2.any():
         cat_image = result_1
     else:
-        cat_image = np.concatenate([result_1, result_2], axis = 1)
-
+        cat_image = np.concatenate([result_1, result_2], axis=1)
     im = Image.fromarray(np.clip(cat_image * 255.0, 0, 255.0).astype('uint8'))
     im.save(filepath, 'png')
