@@ -24,6 +24,8 @@ parser = argparse.ArgumentParser(description='Fine-tune RetinexNet')
 
 parser.add_argument('--phase', dest='phase', default='train', help='train or test')
 parser.add_argument('--test_image', dest='test_image', default=None, help='specific test image path')
+parser.add_argument('--test_input', dest='test_input', default='./data/test/input', help='test input folder (used when --test_image is not set)')
+parser.add_argument('--test_output', dest='test_output', default='./data/test/target', help='test output folder')
 parser.add_argument('--epoch', dest='epoch', type=int, default=50, help='number of epochs for fine-tuning')
 parser.add_argument('--batch_size', dest='batch_size', type=int, default=8, help='batch size')
 parser.add_argument('--patch_size', dest='patch_size', type=int, default=96, help='patch size')
@@ -115,17 +117,24 @@ def finetune_train(lowlight_enhance):
     print('=' * 50)
 
 def finetune_test(lowlight_enhance):
-    save_dir = './test_results'
+    save_dir = args.test_output
     os.makedirs(save_dir, exist_ok=True)
     
     if args.test_image:
+        if not os.path.isfile(args.test_image):
+            raise FileNotFoundError(f"--test_image not found: {args.test_image}")
         test_data = []
         test_names = []
         test_im = load_images(args.test_image)
         test_data.append(test_im)
         test_names.append(args.test_image)
     else:
-        test_data_name = glob('./data/test/input/*.*')
+        if not os.path.isdir(args.test_input):
+            raise NotADirectoryError(f"--test_input not found or not a directory: {args.test_input}")
+        test_data_name = glob(os.path.join(args.test_input, '*.*'))
+        test_data_name.sort()
+        if len(test_data_name) == 0:
+            raise FileNotFoundError(f"No images found in --test_input: {args.test_input}")
         test_data = []
         test_names = []
         for idx in range(len(test_data_name)):
@@ -144,8 +153,11 @@ def finetune_test(lowlight_enhance):
         
         for idx in range(len(test_data)):
             [_, name] = os.path.split(test_names[idx])
-            suffix = name[name.find('.') + 1:]
-            name = name[:name.find('.')]
+            root, ext = os.path.splitext(name)
+            if not ext:
+                continue
+            suffix = ext.lstrip('.')
+            name = root
             
             input_test = np.expand_dims(test_data[idx], axis=0)
             [R_low, I_low, I_delta, S] = lowlight_enhance.sess.run(
