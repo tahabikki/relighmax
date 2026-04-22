@@ -112,7 +112,7 @@ class lowlight_enhance(object):
         print("[*] Initialize model successfully...")
 
     def gradient(self, input_tensor, direction):
-        self.smooth_kernel_x = tf.reshape(tf.constant([[0, 0], [-1, 1]], tf.float32), [2, 2, 1, 1])
+        self.smooth_kernel_x = tf.reshape(tf.constant([[[0, 0], [-1, 1]]], tf.float32), [2, 2, 1, 1])
         self.smooth_kernel_y = tf.transpose(self.smooth_kernel_x, [1, 0, 2, 3])
 
         if direction == "x":
@@ -126,7 +126,11 @@ class lowlight_enhance(object):
 
     def smooth(self, input_I, input_R):
         input_R = tf.image.rgb_to_grayscale(input_R)
-        return tf.reduce_mean(self.gradient(input_I, "x") * tf.exp(-10 * self.ave_gradient(input_R, "x")) + self.gradient(input_I, "y") * tf.exp(-10 * self.ave_gradient(input_R, "y"))
+        grad_x = self.gradient(input_I, "x")
+        grad_y = self.gradient(input_I, "y")
+        ave_grad_x = self.ave_gradient(input_R, "x")
+        ave_grad_y = self.ave_gradient(input_R, "y")
+        return tf.reduce_mean(grad_x * tf.exp(-10 * ave_grad_x) + grad_y * tf.exp(-10 * ave_grad_y))
 
     def evaluate(self, epoch_num, eval_low_data, sample_dir, train_phase):
         print("[*] Evaluating for phase %s / epoch %d..." % (train_phase, epoch_num))
