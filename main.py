@@ -1,4 +1,12 @@
 from __future__ import print_function
+
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+
+import warnings
+warnings.filterwarnings('ignore')
+
 import os
 import argparse
 from glob import glob

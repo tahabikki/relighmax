@@ -1,10 +1,11 @@
+from __future__ import print_function
+
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import warnings
 warnings.filterwarnings('ignore')
 
-from __future__ import print_function
 import os
 import time
 import random
