@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-# Fine-tuning script for RetinexNet
-# Usage: python finetune.py
+# Fine-tuning script for RetinexNet (TensorFlow 2.x compatible)
 
 from __future__ import print_function
 import os
@@ -9,8 +8,11 @@ import argparse
 from glob import glob
 from PIL import Image
 import tensorflow as tf
+import numpy as np
 from model import lowlight_enhance
 from utils import *
+
+tf.compat.v1.disable_eager_execution()
 
 parser = argparse.ArgumentParser(description='Fine-tune RetinexNet')
 
@@ -20,7 +22,6 @@ parser.add_argument('--batch_size', dest='batch_size', type=int, default=8, help
 parser.add_argument('--patch_size', dest='patch_size', type=int, default=96, help='patch size')
 parser.add_argument('--start_lr', dest='start_lr', type=float, default=0.0001, help='lower learning rate for fine-tuning')
 parser.add_argument('--eval_every_epoch', dest='eval_every_epoch', type=int, default=10, help='eval every N epochs')
-parser.add_argument('--use_pretrained', dest='use_pretrained', type=int, default=1, help='use pretrained model')
 
 args = parser.parse_args()
 
@@ -87,12 +88,14 @@ def finetune_test(lowlight_enhance):
     
     test_data_name = glob('./data/test/input/*.*')
     test_data = []
+    test_names = []
     
     for idx in range(len(test_data_name)):
         test_im = load_images(test_data_name[idx])
         test_data.append(test_im)
+        test_names.append(test_data_name[idx])
     
-    tf.global_variables_initializer().run()
+    tf.compat.v1.global_variables_initializer().run()
     
     print('[*] Loading fine-tuned model...')
     load_model_status_Decom, _ = lowlight_enhance.load(lowlight_enhance.saver_Decom, './checkpoint/Decom')
@@ -102,7 +105,7 @@ def finetune_test(lowlight_enhance):
         print('[*] Fine-tuned model loaded!')
         
         for idx in range(len(test_data)):
-            [_, name] = os.path.split(test_data_name[idx])
+            [_, name] = os.path.split(test_names[idx])
             suffix = name[name.find('.') + 1:]
             name = name[:name.find('.')]
             
@@ -121,8 +124,8 @@ def finetune_test(lowlight_enhance):
         print('[!] Failed to load fine-tuned model')
 
 def main(_):
-    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.5)
-    with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
+    gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=0.5)
+    with tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(gpu_options=gpu_options)) as sess:
         model = lowlight_enhance(sess)
         
         if args.phase == 'train':
@@ -133,4 +136,4 @@ def main(_):
             print('[!] Unknown phase')
 
 if __name__ == '__main__':
-    tf.app.run()
+    tf.compat.v1.app.run()

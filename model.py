@@ -10,6 +10,8 @@ import numpy as np
 
 from utils import *
 
+tf.compat.v1.disable_eager_execution()
+
 def concat(layers):
     return tf.concat(layers, axis=3)
 
@@ -54,9 +56,8 @@ class lowlight_enhance(object):
         self.sess = sess
         self.DecomNet_layer_num = 5
 
-        # build the model
-        self.input_low = tf.placeholder(tf.float32, [None, None, None, 3], name='input_low')
-        self.input_high = tf.placeholder(tf.float32, [None, None, None, 3], name='input_high')
+        self.input_low = tf.compat.v1.placeholder(tf.float32, [None, None, None, 3], name='input_low')
+        self.input_high = tf.compat.v1.placeholder(tf.float32, [None, None, None, 3], name='input_high')
 
         [R_low, I_low] = DecomNet(self.input_low, layer_num=self.DecomNet_layer_num)
         [R_high, I_high] = DecomNet(self.input_high, layer_num=self.DecomNet_layer_num)
@@ -72,7 +73,6 @@ class lowlight_enhance(object):
         self.output_I_delta = I_delta_3
         self.output_S = R_low * I_delta_3
 
-        # loss
         self.recon_loss_low = tf.reduce_mean(tf.abs(R_low * I_low_3 -  self.input_low))
         self.recon_loss_high = tf.reduce_mean(tf.abs(R_high * I_high_3 - self.input_high))
         self.recon_loss_mutal_low = tf.reduce_mean(tf.abs(R_high * I_low_3 - self.input_low))
@@ -87,8 +87,8 @@ class lowlight_enhance(object):
         self.loss_Decom = self.recon_loss_low + self.recon_loss_high + 0.001 * self.recon_loss_mutal_low + 0.001 * self.recon_loss_mutal_high + 0.1 * self.Ismooth_loss_low + 0.1 * self.Ismooth_loss_high + 0.01 * self.equal_R_loss
         self.loss_Relight = self.relight_loss + 3 * self.Ismooth_loss_delta
 
-        self.lr = tf.placeholder(tf.float32, name='learning_rate')
-        optimizer = tf.train.AdamOptimizer(self.lr, name='AdamOptimizer')
+        self.lr = tf.compat.v1.placeholder(tf.float32, name='learning_rate')
+        optimizer = tf.compat.v1.train.AdamOptimizer(self.lr, name='AdamOptimizer')
 
         self.var_Decom = [var for var in tf.trainable_variables() if 'DecomNet' in var.name]
         self.var_Relight = [var for var in tf.trainable_variables() if 'RelightNet' in var.name]
@@ -96,10 +96,10 @@ class lowlight_enhance(object):
         self.train_op_Decom = optimizer.minimize(self.loss_Decom, var_list = self.var_Decom)
         self.train_op_Relight = optimizer.minimize(self.loss_Relight, var_list = self.var_Relight)
 
-        self.sess.run(tf.global_variables_initializer())
+        self.sess.run(tf.compat.v1.global_variables_initializer())
 
-        self.saver_Decom = tf.train.Saver(var_list = self.var_Decom)
-        self.saver_Relight = tf.train.Saver(var_list = self.var_Relight)
+        self.saver_Decom = tf.compat.v1.train.Saver(var_list = self.var_Decom)
+        self.saver_Relight = tf.compat.v1.train.Saver(var_list = self.var_Relight)
 
         print("[*] Initialize model successfully...")
 
@@ -137,7 +137,6 @@ class lowlight_enhance(object):
         assert len(train_low_data) == len(train_high_data)
         numBatch = len(train_low_data) // int(batch_size)
 
-        # load pretrained model
         if train_phase == "Decom":
             train_op = self.train_op_Decom
             train_loss = self.loss_Decom
@@ -166,7 +165,6 @@ class lowlight_enhance(object):
 
         for epoch in range(start_epoch, epoch):
             for batch_id in range(start_step, numBatch):
-                # generate data for a batch
                 batch_input_low = np.zeros((batch_size, patch_size, patch_size, 3), dtype="float32")
                 batch_input_high = np.zeros((batch_size, patch_size, patch_size, 3), dtype="float32")
                 for patch_id in range(batch_size):
@@ -187,16 +185,14 @@ class lowlight_enhance(object):
                         random.shuffle(list(tmp))
                         train_low_data, train_high_data  = zip(*tmp)
 
-                # train
                 _, loss = self.sess.run([train_op, train_loss], feed_dict={self.input_low: batch_input_low, \
-                                                                           self.input_high: batch_input_high, \
-                                                                           self.lr: lr[epoch]})
+                                                                   self.input_high: batch_input_high, \
+                                                                   self.lr: lr[epoch]})
 
                 print("%s Epoch: [%2d] [%4d/%4d] time: %4.4f, loss: %.6f" \
                       % (train_phase, epoch + 1, batch_id + 1, numBatch, time.time() - start_time, loss))
                 iter_num += 1
 
-            # evalutate the model and save a checkpoint file for it
             if (epoch + 1) % eval_every_epoch == 0:
                 self.evaluate(epoch + 1, eval_low_data, sample_dir=sample_dir, train_phase=train_phase)
                 self.save(saver, iter_num, ckpt_dir, "RetinexNet-%s" % train_phase)
@@ -226,7 +222,7 @@ class lowlight_enhance(object):
             return False, 0
 
     def test(self, test_low_data, test_high_data, test_low_data_names, save_dir, decom_flag):
-        tf.global_variables_initializer().run()
+        tf.compat.v1.global_variables_initializer().run()
 
         print("[*] Reading checkpoint...")
         load_model_status_Decom, _ = self.load(self.saver_Decom, './model/Decom')
@@ -249,4 +245,3 @@ class lowlight_enhance(object):
                 save_images(os.path.join(save_dir, name + "_I_low." + suffix), I_low)
                 save_images(os.path.join(save_dir, name + "_I_delta." + suffix), I_delta)
             save_images(os.path.join(save_dir, name + "_S."   + suffix), S)
-

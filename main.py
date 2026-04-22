@@ -2,12 +2,14 @@ from __future__ import print_function
 import os
 import argparse
 from glob import glob
-
+import numpy as np
 from PIL import Image
 import tensorflow as tf
 
 from model import lowlight_enhance
 from utils import *
+
+tf.compat.v1.disable_eager_execution()
 
 parser = argparse.ArgumentParser(description='')
 
@@ -91,8 +93,8 @@ def main(_):
     if args.use_gpu:
         print("[*] GPU\n")
         os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_idx
-        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=args.gpu_mem)
-        with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
+        gpu_options = tf.compat.v1.GPUOptions(per_process_gpu_memory_fraction=args.gpu_mem)
+        with tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(gpu_options=gpu_options)) as sess:
             model = lowlight_enhance(sess)
             if args.phase == 'train':
                 lowlight_train(model)
@@ -103,7 +105,7 @@ def main(_):
                 exit(0)
     else:
         print("[*] CPU\n")
-        with tf.Session() as sess:
+        with tf.compat.v1.Session() as sess:
             model = lowlight_enhance(sess)
             if args.phase == 'train':
                 lowlight_train(model)
@@ -114,4 +116,4 @@ def main(_):
                 exit(0)
 
 if __name__ == '__main__':
-    tf.app.run()
+    tf.compat.v1.app.run()

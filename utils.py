@@ -1,33 +1,26 @@
 import numpy as np
 from PIL import Image
 import random
+import tensorflow as tf
 
 def data_augmentation(image, mode):
     if mode == 0:
-        # original
         return image
     elif mode == 1:
-        # flip up and down
         return np.flipud(image)
     elif mode == 2:
-        # rotate counterwise 90 degree
         return np.rot90(image)
     elif mode == 3:
-        # rotate 90 degree and flip up and down
         image = np.rot90(image)
         return np.flipud(image)
     elif mode == 4:
-        # rotate 180 degree
         return np.rot90(image, k=2)
     elif mode == 5:
-        # rotate 180 degree and flip
         image = np.rot90(image, k=2)
         return np.flipud(image)
     elif mode == 6:
-        # rotate 270 degree
         return np.rot90(image, k=3)
     elif mode == 7:
-        # rotate 270 degree and flip
         image = np.rot90(image, k=3)
         return np.flipud(image)
 
@@ -47,8 +40,8 @@ def random_augmentation(image):
     
     if random.random() < 0.3:
         gamma = random.uniform(0.7, 1.3)
-image = np.power(np.clip(image, 1e-8, 1), gamma)
-            image = np.clip(image, 0, 1)
+        image = np.power(np.clip(image, 1e-8, 1), gamma)
+        image = np.clip(image, 0, 1)
     
     return image
 
@@ -83,7 +76,7 @@ def shadow_direction_augmentation(image):
             mask = 1 - (x_grad + y_grad)
             mask = np.clip(np.tile(mask[:, :, np.newaxis], (1, 1, 3)), 0.1, 1)
             
-        else:  # partial
+        else:
             center_x = random.randint(w // 4, 3 * w // 4)
             center_y = random.randint(h // 4, 3 * h // 4)
             radius = random.randint(min(h, w) // 4, min(h, w) // 2)
