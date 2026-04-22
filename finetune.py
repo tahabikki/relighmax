@@ -1,5 +1,10 @@
 #!/usr/bin/env python
-# Fine-tuning script for RetinexNet (TensorFlow 2.x compatible)
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+
+import warnings
+warnings.filterwarnings('ignore')
 
 from __future__ import print_function
 import os

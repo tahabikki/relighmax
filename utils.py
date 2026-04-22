@@ -1,7 +1,11 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
 import numpy as np
 from PIL import Image
 import random
-import tensorflow as tf
+import warnings
+warnings.filterwarnings('ignore')
 
 def data_augmentation(image, mode):
     if mode == 0:
