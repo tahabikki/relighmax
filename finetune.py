@@ -1,4 +1,5 @@
-#!/usr/bin/env python
+from __future__ import print_function
+
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
@@ -6,8 +7,6 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 import warnings
 warnings.filterwarnings('ignore')
 
-from __future__ import print_function
-import os
 import shutil
 import argparse
 from glob import glob
