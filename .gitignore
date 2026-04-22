@@ -29,30 +29,13 @@ env/
 # TensorFlow
 *.ckpt.*
 *.meta
-*checkpoint*
 logs/
 tensorboard/
-
-# Models & Checkpoints
-model/
-checkpoint/
-*.pb
-
-# Data (keep structure but ignore contents)
-data/train/*
-!data/train/.gitkeep
-data/eval/*
-!data/eval/.gitkeep
-data/test/*
-!data/test/.gitkeep
 
 # Results
 sample/
 test_results/
-*.png
-*.jpg
-*.jpeg
-*.bmp
+checkpoint/
 
 # IDE
 .vscode/
