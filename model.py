@@ -202,14 +202,11 @@ class lowlight_enhance(object):
                 _, loss = self.sess.run([train_op, train_loss], feed_dict={self.input_low: batch_input_low, \
                                                                    self.input_high: batch_input_high, \
                                                                    self.lr: lr[epoch]})
-
-                print("%s Epoch: [%2d] [%4d/%4d] time: %4.4f, loss: %.6f" \
-                      % (train_phase, epoch + 1, batch_id + 1, numBatch, time.time() - start_time, loss))
                 iter_num += 1
 
-            if (epoch + 1) % eval_every_epoch == 0:
-                self.evaluate(epoch + 1, eval_low_data, sample_dir=sample_dir, train_phase=train_phase)
-                self.save(saver, iter_num, ckpt_dir, "RetinexNet-%s" % train_phase)
+            print("[Epoch %d] Loss: %.4f" % (epoch + 1, loss))
+            self.evaluate(epoch + 1, eval_low_data, sample_dir=sample_dir, train_phase=train_phase)
+            self.save(saver, iter_num, ckpt_dir, "RetinexNet-%s" % train_phase)
 
         print("[*] Finish training for phase %s." % train_phase)
 

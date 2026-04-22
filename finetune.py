@@ -1,7 +1,9 @@
 from __future__ import print_function
 
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['TF_CUDNN_LOGGING_LEVEL'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -50,6 +52,9 @@ def finetune_train(lowlight_enhance):
     train_high_data_names = glob('./data/train/target/*.*')
     train_high_data_names.sort()
     
+    print('=' * 50)
+    print('RETINEXNET FINE-TUNING')
+    print('=' * 50)
     print('[*] Training pairs:', len(train_low_data_names))
     
     valid_pairs = []
@@ -97,7 +102,11 @@ def finetune_train(lowlight_enhance):
     )
     
     print('[*] Fine-tuning complete!')
-    print('[*] Checkpoints saved in ./checkpoint/')
+    print('=' * 50)
+    print('CHECKPOINTS SAVED:')
+    print('  ./checkpoint/Decom/')
+    print('  ./checkpoint/Relight/')
+    print('=' * 50)
 
 def finetune_test(lowlight_enhance):
     save_dir = './test_results'
