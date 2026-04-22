@@ -53,9 +53,9 @@ def finetune_train(lowlight_enhance):
     train_high_data_names.sort()
     
     print('=' * 50)
-    print('RETINEXNET FINE-TUNING')
+    print('FINE-TUNING RETINEXNET')
     print('=' * 50)
-    print('[*] Training pairs:', len(train_low_data_names))
+    print('Training pairs:', len(train_low_data))
     
     valid_pairs = []
     for idx in range(len(train_low_data_names)):
@@ -82,8 +82,9 @@ def finetune_train(lowlight_enhance):
         eval_low_im = load_images(eval_low_data_name[idx])
         eval_low_data.append(eval_low_im)
     
-    print('[*] Starting fine-tuning...')
-    print('[*] Phase 1: Decom')
+    print('=' * 50)
+    print('Phase 1/2: Learning decomposition')
+    print('=' * 50)
     lowlight_enhance.train(
         train_low_data, train_high_data, eval_low_data,
         batch_size=args.batch_size, patch_size=args.patch_size,
@@ -92,7 +93,9 @@ def finetune_train(lowlight_enhance):
         eval_every_epoch=args.eval_every_epoch, train_phase='Decom'
     )
     
-    print('[*] Phase 2: Relight')
+    print('=' * 50)
+    print('Phase 2/2: Learning relighting')
+    print('=' * 50)
     lowlight_enhance.train(
         train_low_data, train_high_data, eval_low_data,
         batch_size=args.batch_size, patch_size=args.patch_size,
@@ -103,9 +106,11 @@ def finetune_train(lowlight_enhance):
     
     print('[*] Fine-tuning complete!')
     print('=' * 50)
-    print('CHECKPOINTS SAVED:')
-    print('  ./checkpoint/Decom/')
-    print('  ./checkpoint/Relight/')
+    print('TRAINING COMPLETE!')
+    print('=' * 50)
+    print('Checkpoints saved:')
+    print('  ./checkpoint/Decom/RetinexNet_finetuned')
+    print('  ./checkpoint/Relight/RetinexNet_finetuned')
     print('=' * 50)
 
 def finetune_test(lowlight_enhance):

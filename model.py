@@ -206,7 +206,7 @@ class lowlight_enhance(object):
 
             print("[Epoch %d] Loss: %.4f" % (epoch + 1, loss))
             self.evaluate(epoch + 1, eval_low_data, sample_dir=sample_dir, train_phase=train_phase)
-            self.save(saver, iter_num, ckpt_dir, "RetinexNet-%s" % train_phase)
+            self.save(saver, iter_num, ckpt_dir, "RetinexNet_finetuned")
 
         print("[*] Finish training for phase %s." % train_phase)
 
