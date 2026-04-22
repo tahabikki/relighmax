@@ -94,6 +94,10 @@ def shadow_direction_augmentation(image):
 
 def load_images(file_path):
     im = Image.open(file_path)
+    if im.mode == 'RGBA':
+        im = im.convert('RGB')
+    elif im.mode == 'L':
+        im = im.convert('RGB')
     return np.array(im, dtype="float32") / 255.0
 
 def save_images(filepath, result_1, result_2=None):

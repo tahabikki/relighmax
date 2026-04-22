@@ -160,6 +160,9 @@ class lowlight_enhance(object):
             saver = self.saver_Relight
 
         load_model_status, global_step = self.load(saver, ckpt_dir)
+        if not load_model_status:
+            alt_ckpt_dir = ckpt_dir.replace('checkpoint', 'model')
+            load_model_status, global_step = self.load(saver, alt_ckpt_dir)
         if load_model_status:
             iter_num = global_step
             start_epoch = global_step // numBatch
